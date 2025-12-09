@@ -1,12 +1,19 @@
 package com.alpha.RideX.Entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 
 @Entity
 public class Vechile {
 	
 	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id;
 	private String vname;
 	private String vno;
@@ -15,14 +22,23 @@ public class Vechile {
 	private int capacity;
 	private String currentcity;
 	private String availablestatus;
-	private int priceperkm;
+	private double priceperkm;
+	private int averagespeed;
+	
+	@OneToOne(cascade = CascadeType.ALL)
+	@JsonBackReference
+	private Driver driver;
+	
+	
 	
 	public Vechile() {
 		super();
 	}
 	
-	public Vechile(int id, String vname,String vno ,String vtype, String model, int capacity, String currentcity,
-			String availablestatus, int priceperkm) {
+	
+
+	public Vechile(int id, String vname, String vno, String vtype, String model, int capacity, String currentcity,
+			String availablestatus, int priceperkm, int averagespeed, Driver driver) {
 		super();
 		this.id = id;
 		this.vname = vname;
@@ -33,7 +49,11 @@ public class Vechile {
 		this.currentcity = currentcity;
 		this.availablestatus = availablestatus;
 		this.priceperkm = priceperkm;
+		this.averagespeed = averagespeed;
+		this.driver = driver;
 	}
+
+
 
 	public int getId() {
 		return id;
@@ -101,20 +121,42 @@ public class Vechile {
 		this.availablestatus = availablestatus;
 	}
 
-	public int getPriceperkm() {
+	public double getPriceperkm() {
 		return priceperkm;
 	}
 
-	public void setPriceperkm(int priceperkm) {
+	public void setPriceperkm(double priceperkm) {
 		this.priceperkm = priceperkm;
 	}
+
+	public int getAveragespeed() {
+		return averagespeed;
+	}
+
+	public void setAveragespeed(int averagespeed) {
+		this.averagespeed = averagespeed;
+	}
+	
+	public Driver getDriver() {
+		return driver;
+	}
+
+
+
+	public void setDriver(Driver driver) {
+		this.driver = driver;
+	}
+
+
 
 	@Override
 	public String toString() {
 		return "Vechile [id=" + id + ", vname=" + vname + ", vno=" + vno + ", vtype=" + vtype + ", model=" + model
 				+ ", capacity=" + capacity + ", currentcity=" + currentcity + ", availablestatus=" + availablestatus
-				+ ", priceperkm=" + priceperkm + "]";
+				+ ", priceperkm=" + priceperkm + ", averagespeed=" + averagespeed + "]";
 	}
+
+
 
 	
 	

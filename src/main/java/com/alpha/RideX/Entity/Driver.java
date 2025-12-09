@@ -1,7 +1,11 @@
 package com.alpha.RideX.Entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
@@ -10,6 +14,7 @@ import jakarta.persistence.OneToOne;
 public class Driver {
 
 	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id;
 	private String licenseNo;
 	private String upiid;
@@ -22,9 +27,10 @@ public class Driver {
 	
 	@OneToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "vehicle_id")
+	@JsonManagedReference
 	private Vechile v;
 	
-	
+		
 	public Driver() {
 		super();
 	}
@@ -155,10 +161,4 @@ public class Driver {
 				+ v + "]";
 	}
 
-
-	
-	
-	
-	
-	
 }

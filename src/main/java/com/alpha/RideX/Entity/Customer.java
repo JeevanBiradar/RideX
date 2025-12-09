@@ -23,7 +23,7 @@ public class Customer {
 	
 	
 	@OneToMany(cascade = CascadeType.ALL)
-	List<Bookings> bookinglist;
+	private List<Bookings> bookinglist;
 	
 	
 	

@@ -1,5 +1,7 @@
 package com.alpha.RideX.Entity;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
@@ -8,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 
 @Entity
@@ -29,6 +32,8 @@ public class Driver {
 	@JoinColumn(name = "vehicle_id")
 	@JsonManagedReference
 	private Vechile v;
+	@OneToMany(cascade = CascadeType.ALL)
+	private List<Bookings> bookinglist;
 	
 		
 	public Driver() {
@@ -36,8 +41,11 @@ public class Driver {
 	}
 
 
+
+	
+
 	public Driver(int id, String licenseNo, String upiid, String name, String status, int age, long mobno,
-			String gender,String mailid ,Vechile v) {
+			String gender, String mailid, Vechile v, List<Bookings> bookinglist) {
 		super();
 		this.id = id;
 		this.licenseNo = licenseNo;
@@ -49,10 +57,12 @@ public class Driver {
 		this.gender = gender;
 		this.mailid = mailid;
 		this.v = v;
+		this.bookinglist = bookinglist;
 	}
 
 
-	
+
+
 
 	public int getId() {
 		return id;
@@ -152,6 +162,23 @@ public class Driver {
 	public void setV(Vechile v) {
 		this.v = v;
 	}
+	
+	
+
+	public List<Bookings> getBookinglist() {
+		return bookinglist;
+	}
+
+
+
+
+
+	public void setBookinglist(List<Bookings> bookinglist) {
+		this.bookinglist = bookinglist;
+	}
+
+
+
 
 
 	@Override

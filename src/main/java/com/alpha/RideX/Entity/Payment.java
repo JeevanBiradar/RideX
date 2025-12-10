@@ -27,4 +27,49 @@ public class Payment {
     public void setBooking(Bookings booking) { this.booking = booking; }
     public Bookings getBooking() { return booking; }
     // ... generate rest
+	public Payment() {
+		super();
+	}
+	public Payment(int paymentId, double amount, String paymentType, PaymentStatus paymentStatus,
+			LocalDateTime paymentTime, Bookings booking) {
+		super();
+		this.paymentId = paymentId;
+		this.amount = amount;
+		this.paymentType = paymentType;
+		this.paymentStatus = paymentStatus;
+		this.paymentTime = paymentTime;
+		this.booking = booking;
+	}
+	public int getPaymentId() {
+		return paymentId;
+	}
+	public void setPaymentId(int paymentId) {
+		this.paymentId = paymentId;
+	}
+	public double getAmount() {
+		return amount;
+	}
+	public void setAmount(double amount) {
+		this.amount = amount;
+	}
+	public String getPaymentType() {
+		return paymentType;
+	}
+	public void setPaymentType(String paymentType) {
+		this.paymentType = paymentType;
+	}
+	public PaymentStatus getPaymentStatus() {
+		return paymentStatus;
+	}
+	public void setPaymentStatus(PaymentStatus paymentStatus) {
+		this.paymentStatus = paymentStatus;
+	}
+	public LocalDateTime getPaymentTime() {
+		return paymentTime;
+	}
+	public void setPaymentTime(LocalDateTime paymentTime) {
+		this.paymentTime = paymentTime;
+	}
+    
+    
 }

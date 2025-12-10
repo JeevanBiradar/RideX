@@ -8,6 +8,7 @@ import com.alpha.RideX.Entity.Vechile;
 
 public interface VechileRepository extends JpaRepository<Vechile, Integer>{
 
-	List<Vechile> findAvailableVehiclesBycurrentcity(String currentcity);
+	
+	List<Vechile> findByCurrentcityIgnoreCaseAndAvailablestatus(String currentCity, String status);
 
 }

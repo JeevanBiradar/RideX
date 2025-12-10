@@ -3,6 +3,7 @@ package com.alpha.RideX.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,7 @@ import com.alpha.RideX.Entity.Driver;
 import com.alpha.RideX.Service.DriverService;
 
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 public class DriverController {
 
@@ -71,9 +73,9 @@ public class DriverController {
 	}
 	
 	@GetMapping("/available-vehicles")
-    public ResponseEntity<ResponseStructure<AvailableVehiclesDTO>> getAvailableVehicles(@RequestParam Long mobileno,@RequestParam String destination) {
+    public ResponseEntity<ResponseStructure<AvailableVehiclesDTO>> getAvailableVehicles(@RequestParam Long mobileno,@RequestParam String destination,@RequestParam String source){
         
-        ResponseStructure<AvailableVehiclesDTO> response = ds.getAvailableVehiclesByCity(mobileno, destination);
+        ResponseStructure<AvailableVehiclesDTO> response = ds.getAvailableVehiclesByCity(mobileno, destination,source);
         
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

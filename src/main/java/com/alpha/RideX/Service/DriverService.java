@@ -206,7 +206,7 @@ public class DriverService {
 		
 
 //getallAvailableVehicles		
-	public ResponseStructure<AvailableVehiclesDTO> getAvailableVehiclesByCity(Long mobileno, String destinationLocation) {
+	public ResponseStructure<AvailableVehiclesDTO> getAvailableVehiclesByCity(Long mobileno, String destinationLocation,String inputSource) {
 					
 		Customer c=customerRepo.findByMobileno(mobileno);
 		if(c==null) {
@@ -214,7 +214,7 @@ public class DriverService {
 		}
 					
 		//we will get customer location (current city)
-		String SourceLocation=c.getCurrentLoc();
+		String SourceLocation = (inputSource != null && !inputSource.isEmpty()) ? inputSource : c.getCurrentLoc();
 					
 		double calculatedDistance;
 		try {                                    //this method will give us latitude and longitude based on city name
@@ -242,7 +242,7 @@ public class DriverService {
 			  List<VehicledetailsDTO> l= new ArrayList<VehicledetailsDTO>();
 							
 			  //store vechiles based on filter (sourceloaction/customerlocation)
-			  List<Vechile> list=vehiclerepo.findAvailableVehiclesBycurrentcity(SourceLocation);
+			  List<Vechile> list=vehiclerepo.findByCurrentcityIgnoreCaseAndAvailablestatus(SourceLocation,"Available");
 					
 			  if(list ==null || list.isEmpty()) {
 						throw new VehiclesareNotavilabletoDestinationLocation("No vechile availalable in "+SourceLocation);

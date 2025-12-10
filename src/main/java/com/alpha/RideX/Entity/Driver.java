@@ -2,6 +2,7 @@ package com.alpha.RideX.Entity;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
@@ -32,7 +33,9 @@ public class Driver {
 	@JoinColumn(name = "vehicle_id")
 	@JsonManagedReference
 	private Vechile v;
+	
 	@OneToMany(cascade = CascadeType.ALL)
+	@JsonIgnore
 	private List<Bookings> bookinglist;
 	
 		

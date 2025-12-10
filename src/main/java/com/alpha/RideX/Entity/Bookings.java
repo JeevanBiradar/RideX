@@ -3,6 +3,8 @@ package com.alpha.RideX.Entity;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -21,6 +23,9 @@ public class Bookings {
 	private String estimationTravelTime;
 	private LocalDateTime bookingDate;
 	
+	@Enumerated(EnumType.STRING)
+    private BookingStatus status;
+	
 	
 	@ManyToOne
 	@JoinColumn(name="customer_id")
@@ -34,8 +39,10 @@ public class Bookings {
 		super();
 	}
 
+	
 	public Bookings(int id, String sourecLocation, String destinationLocation, double distanceTravelled, double fare,
-			String estimationTravelTime, LocalDateTime bookingDate, Customer cust, Driver driver) {
+			String estimationTravelTime, LocalDateTime bookingDate, BookingStatus status, Customer cust,
+			Driver driver) {
 		super();
 		this.id = id;
 		this.sourecLocation = sourecLocation;
@@ -44,9 +51,11 @@ public class Bookings {
 		this.fare = fare;
 		this.estimationTravelTime = estimationTravelTime;
 		this.bookingDate = bookingDate;
+		this.status = status;
 		this.cust = cust;
 		this.driver = driver;
 	}
+
 
 	public int getId() {
 		return id;
@@ -103,6 +112,17 @@ public class Bookings {
 	public void setBookingDate(LocalDateTime bookingDate) {
 		this.bookingDate = bookingDate;
 	}
+
+	
+	public BookingStatus getStatus() {
+		return status;
+	}
+
+
+	public void setStatus(BookingStatus status) {
+		this.status = status;
+	}
+
 
 	public Customer getCust() {
 		return cust;

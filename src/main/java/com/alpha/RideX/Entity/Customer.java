@@ -2,6 +2,8 @@ package com.alpha.RideX.Entity;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -23,6 +25,7 @@ public class Customer {
 	
 	
 	@OneToMany(cascade = CascadeType.ALL)
+	@JsonIgnore
 	private List<Bookings> bookinglist;
 	
 	

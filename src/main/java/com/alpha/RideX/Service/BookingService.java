@@ -1,22 +1,15 @@
 package com.alpha.RideX.Service;
 
 import java.time.LocalDateTime;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
 
 import com.alpha.RideX.ResponseStructure;
 import com.alpha.RideX.DTO.BookingRequestDTO;
 import com.alpha.RideX.DTO.BookingResponseDTO;
-import com.alpha.RideX.Entity.Bookings;
-import com.alpha.RideX.Entity.Customer;
-import com.alpha.RideX.Entity.Driver;
-import com.alpha.RideX.Entity.Vechile;
-import com.alpha.RideX.Repository.BookingsRepository;
-import com.alpha.RideX.Repository.CustomerRepository;
-import com.alpha.RideX.Repository.DriverRepository;
-
+import com.alpha.RideX.Entity.*; // Imports Booking, Payment, Customer, Driver, Enums
+import com.alpha.RideX.Repository.*;
 
 @Service
 public class BookingService {
@@ -26,50 +19,53 @@ public class BookingService {
     @Autowired
     private CustomerRepository customerRepo;
     @Autowired
+    private VechileRepository vehicleRepo;
+    @Autowired
     private DriverRepository driverRepo;
     @Autowired
-    private MapService mapService; 
+    private PaymentRepository paymentRepo;
+    @Autowired
+    private MapService mapService;
 
     public ResponseStructure<BookingResponseDTO> createBooking(BookingRequestDTO request) {
 
-        // Fetch Customer
-        Customer customer = customerRepo.findById((int) request.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + request.getCustomerId()));
+        // 1. FETCH ENTITIES
+        Customer customer = customerRepo.findById(request.getCustomerId())
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-        // Fetch Driver
-        Driver driver = driverRepo.findById(request.getDriverId())
-                .orElseThrow(() -> new RuntimeException("Driver not found with ID: " + request.getDriverId()));
+        Vechile vehicle = vehicleRepo.findById(request.getVehicleId())
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
-        Vechile vehicle = driver.getV();
-
-        // Validation: Check if Driver is Available
+        // 2. CHECK AVAILABILITY (Sync Check)
+        // Ideally, check both. If driver is offline, car shouldn't be bookable.
         if (!"Available".equalsIgnoreCase(vehicle.getAvailablestatus())) {
-            throw new RuntimeException("This driver is no longer available. Please choose another.");
+            throw new RuntimeException("Vehicle is already booked.");
+        }
+        
+        Driver driver = vehicle.getDriver();
+        if (driver == null) throw new RuntimeException("No driver assigned to this vehicle");
+        
+        if (!"Available".equalsIgnoreCase(driver.getStatus())) {
+             throw new RuntimeException("Driver is currently unavailable.");
         }
 
-        // SECURITY: Re-Calculate Distance & Fare
+        // 3. CALCULATE DISTANCE & FARE
         double distance = 0.0;
         try {
-            double[] sourceCoords = mapService.getCoordinates(request.getSourceLocation());
-            double[] destCoords = mapService.getCoordinates(request.getDestinationLocation());
-
-            distance = mapService.getDistanceInKm(
-                sourceCoords[0], sourceCoords[1], 
-                destCoords[0], destCoords[1]
-            );
+            double[] src = mapService.getCoordinates(request.getSourceLocation());
+            double[] dest = mapService.getCoordinates(request.getDestinationLocation());
+            distance = mapService.getDistanceInKm(src[0], src[1], dest[0], dest[1]);
         } catch (Exception e) {
-            throw new RuntimeException("Unable to calculate route. Please check addresses.");
+            throw new RuntimeException("Map Error: " + e.getMessage());
         }
 
-        // Calculate Fare (Distance * Price Per Km)
         double fare = distance * vehicle.getPriceperkm();
         
-        // Calculate Time (Distance / Speed)
-        int speed = vehicle.getAveragespeed() > 0 ? vehicle.getAveragespeed() : 40;
-        double timeInHours = distance / (double) speed;
-        String estimatedTime = (int)(timeInHours * 60) + " mins";
+        // Safe speed check
+        int speed = (vehicle.getAveragespeed() > 0) ? vehicle.getAveragespeed() : 40;
+        int timeMinutes = (int) ((distance / speed) * 60);
 
-        // Create Booking Entity
+        // 4. CREATE BOOKING
         Bookings booking = new Bookings();
         booking.setCust(customer);
         booking.setDriver(driver);
@@ -77,36 +73,52 @@ public class BookingService {
         booking.setDestinationLocation(request.getDestinationLocation());
         booking.setDistanceTravelled(Math.round(distance * 100.0) / 100.0);
         booking.setFare(Math.round(fare * 100.0) / 100.0);
-        booking.setEstimationTravelTime(estimatedTime);
+        booking.setEstimationTravelTime(timeMinutes + " mins");
+        booking.setStatus(BookingStatus.CONFIRMED);
         booking.setBookingDate(LocalDateTime.now());
 
-        // Save Booking
+        // 5. UPDATE JAVA LISTS (Consistency)
+        if(customer.getBookinglist() != null) customer.getBookinglist().add(booking);
+        if(driver.getBookinglist() != null) driver.getBookinglist().add(booking);
+
+        // 6. SAVE BOOKING
         Bookings savedBooking = bookingRepo.save(booking);
 
-        // Update Vehicle Status to 'Booked'
+        // 7. CREATE PAYMENT (Normalized)
+        Payment payment = new Payment();
+        payment.setBooking(savedBooking); 
+        payment.setAmount(savedBooking.getFare());
+        // Handle String to Enum conversion safely, or just store String if Entity uses String
+        payment.setPaymentType(request.getPaymentMethod()); 
+        payment.setPaymentStatus(PaymentStatus.PENDING);
+        payment.setPaymentTime(LocalDateTime.now());
+        
+        paymentRepo.save(payment);
+
+        // 8. SYNC STATUS: LOCK BOTH VEHICLE AND DRIVER
         vehicle.setAvailablestatus("Booked");
-        driverRepo.save(driver); // Saving driver cascades to vehicle
+        vehicleRepo.save(vehicle);
 
-        // Prepare Response DTO
-        BookingResponseDTO response = new BookingResponseDTO();
-        response.setBookingId(savedBooking.getId());
-        response.setStatus("CONFIRMED");
-        response.setCustomerName(customer.getName());
-        response.setDriverName(driver.getName());
-        response.setVehicleModel(vehicle.getModel());
-        response.setVehicleNumber(vehicle.getVno());
-        response.setVechileType(vehicle.getVtype()); 
-        response.setVehicleCapacity(vehicle.getCapacity());
-        response.setTotalFare(savedBooking.getFare());
-        response.setTotalDistance(savedBooking.getDistanceTravelled());
-        response.setEstimatedTime(savedBooking.getEstimationTravelTime());
-        response.setBookingTime(savedBooking.getBookingDate());
+        driver.setStatus("On Trip");
+        driverRepo.save(driver);
 
-        // 9. Return Structure
+        // 9. RESPONSE
+        BookingResponseDTO responseDTO = new BookingResponseDTO(
+            savedBooking.getId(),
+            savedBooking.getFare(),
+            savedBooking.getDistanceTravelled(),
+            savedBooking.getEstimationTravelTime(),
+            savedBooking.getStatus(),
+            payment.getPaymentStatus(),
+            driver.getName(),
+            vehicle.getModel(),
+            savedBooking.getBookingDate()
+        );
+
         ResponseStructure<BookingResponseDTO> rs = new ResponseStructure<>();
         rs.setStatusCode(HttpStatus.CREATED.value());
-        rs.setMessage("Ride Confirmed successfully!");
-        rs.setData(response);
+        rs.setMessage("Ride Confirmed");
+        rs.setData(responseDTO);
 
         return rs;
     }

@@ -34,7 +34,7 @@ public class Driver {
 	@JsonManagedReference
 	private Vechile v;
 	
-	@OneToMany(cascade = CascadeType.ALL)
+	@OneToMany(mappedBy = "driver")
 	@JsonIgnore
 	private List<Bookings> bookinglist;
 	
@@ -43,9 +43,6 @@ public class Driver {
 		super();
 	}
 
-
-
-	
 
 	public Driver(int id, String licenseNo, String upiid, String name, String status, int age, long mobno,
 			String gender, String mailid, Vechile v, List<Bookings> bookinglist) {
@@ -62,9 +59,6 @@ public class Driver {
 		this.v = v;
 		this.bookinglist = bookinglist;
 	}
-
-
-
 
 
 	public int getId() {
@@ -166,22 +160,15 @@ public class Driver {
 		this.v = v;
 	}
 	
-	
 
 	public List<Bookings> getBookinglist() {
 		return bookinglist;
 	}
 
 
-
-
-
 	public void setBookinglist(List<Bookings> bookinglist) {
 		this.bookinglist = bookinglist;
 	}
-
-
-
 
 
 	@Override

@@ -10,26 +10,24 @@ public class Payment {
     private int paymentId;
 
     private double amount;
-    private String paymentType; // CASH, UPI, CARD
+    private String paymentType;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus; // PENDING, SUCCESS, FAILED
+    private PaymentStatus paymentStatus; 
     
     private LocalDateTime paymentTime;
 
-    // INDUSTRY STANDARD: Single Source of Truth
-    // We link ONLY to Booking. 
+   
     @OneToOne 
     @JoinColumn(name = "booking_id")
     private Bookings booking; 
 
-    // Getters and Setters...
-    public void setBooking(Bookings booking) { this.booking = booking; }
-    public Bookings getBooking() { return booking; }
-    // ... generate rest
+  
 	public Payment() {
 		super();
 	}
+	
+	
 	public Payment(int paymentId, double amount, String paymentType, PaymentStatus paymentStatus,
 			LocalDateTime paymentTime, Bookings booking) {
 		super();
@@ -40,6 +38,15 @@ public class Payment {
 		this.paymentTime = paymentTime;
 		this.booking = booking;
 	}
+	
+    public void setBooking(Bookings booking) {
+	    this.booking = booking; 
+	}
+	    
+	public Bookings getBooking() {
+	    return booking; 
+	}
+	
 	public int getPaymentId() {
 		return paymentId;
 	}

@@ -24,12 +24,11 @@ public class Customer {
 	private String currentLoc;
 	
 	
-	@OneToMany(cascade = CascadeType.ALL)
+	@OneToMany(mappedBy = "cust")
 	@JsonIgnore
 	private List<Bookings> bookinglist;
 	
-	
-	
+
 	public Customer() {
 		super();
 	}

@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 
 @Entity
 public class Bookings {
@@ -35,14 +36,17 @@ public class Bookings {
 	@JoinColumn(name="driver_id")
 	private Driver driver;
 	
+	@OneToOne(mappedBy = "booking")
+	private Payment payment;
+	
 	public Bookings() {
 		super();
 	}
 
 	
 	public Bookings(int id, String sourecLocation, String destinationLocation, double distanceTravelled, double fare,
-			String estimationTravelTime, LocalDateTime bookingDate, BookingStatus status, Customer cust,
-			Driver driver) {
+			String estimationTravelTime, LocalDateTime bookingDate, BookingStatus status, Customer cust, Driver driver,
+			Payment payment) {
 		super();
 		this.id = id;
 		this.sourecLocation = sourecLocation;
@@ -54,6 +58,7 @@ public class Bookings {
 		this.status = status;
 		this.cust = cust;
 		this.driver = driver;
+		this.payment = payment;
 	}
 
 
@@ -139,6 +144,18 @@ public class Bookings {
 	public void setDriver(Driver driver) {
 		this.driver = driver;
 	}
+
+	
+	public Payment getPayment() {
+		return payment;
+	}
+
+
+	public void setPayment(Payment payment) {
+		this.payment = payment;
+	}
+
+
 
 	@Override
 	public String toString() {

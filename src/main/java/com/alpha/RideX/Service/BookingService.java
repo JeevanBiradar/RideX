@@ -1,14 +1,18 @@
 package com.alpha.RideX.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 
 import com.alpha.RideX.ResponseStructure;
 import com.alpha.RideX.DTO.BookingRequestDTO;
 import com.alpha.RideX.DTO.BookingResponseDTO;
-import com.alpha.RideX.Entity.*; // Imports Booking, Payment, Customer, Driver, Enums
+import com.alpha.RideX.Entity.*; 
 import com.alpha.RideX.Repository.*;
 
 @Service
@@ -29,15 +33,14 @@ public class BookingService {
 
     public ResponseStructure<BookingResponseDTO> createBooking(BookingRequestDTO request) {
 
-        // 1. FETCH ENTITIES
+        //FETCH ENTITIES
         Customer customer = customerRepo.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
         Vechile vehicle = vehicleRepo.findById(request.getVehicleId())
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
-        // 2. CHECK AVAILABILITY (Sync Check)
-        // Ideally, check both. If driver is offline, car shouldn't be bookable.
+        //CHECK AVAILABILITY (Sync Check)
         if (!"Available".equalsIgnoreCase(vehicle.getAvailablestatus())) {
             throw new RuntimeException("Vehicle is already booked.");
         }
@@ -49,7 +52,7 @@ public class BookingService {
              throw new RuntimeException("Driver is currently unavailable.");
         }
 
-        // 3. CALCULATE DISTANCE & FARE
+        //CALCULATE DISTANCE & FARE
         double distance = 0.0;
         try {
             double[] src = mapService.getCoordinates(request.getSourceLocation());
@@ -65,7 +68,7 @@ public class BookingService {
         int speed = (vehicle.getAveragespeed() > 0) ? vehicle.getAveragespeed() : 40;
         int timeMinutes = (int) ((distance / speed) * 60);
 
-        // 4. CREATE BOOKING
+        // CREATE BOOKING
         Bookings booking = new Bookings();
         booking.setCust(customer);
         booking.setDriver(driver);
@@ -77,32 +80,31 @@ public class BookingService {
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setBookingDate(LocalDateTime.now());
 
-        // 5. UPDATE JAVA LISTS (Consistency)
+        //UPDATE JAVA LISTS (Consistency)
         if(customer.getBookinglist() != null) customer.getBookinglist().add(booking);
         if(driver.getBookinglist() != null) driver.getBookinglist().add(booking);
 
-        // 6. SAVE BOOKING
+        //SAVE BOOKING
         Bookings savedBooking = bookingRepo.save(booking);
 
-        // 7. CREATE PAYMENT (Normalized)
+        // CREATE PAYMENT 
         Payment payment = new Payment();
         payment.setBooking(savedBooking); 
         payment.setAmount(savedBooking.getFare());
-        // Handle String to Enum conversion safely, or just store String if Entity uses String
         payment.setPaymentType(request.getPaymentMethod()); 
         payment.setPaymentStatus(PaymentStatus.PENDING);
         payment.setPaymentTime(LocalDateTime.now());
         
         paymentRepo.save(payment);
 
-        // 8. SYNC STATUS: LOCK BOTH VEHICLE AND DRIVER
+        // SYNC STATUS: LOCK BOTH VEHICLE AND DRIVER
         vehicle.setAvailablestatus("Booked");
         vehicleRepo.save(vehicle);
 
         driver.setStatus("On Trip");
         driverRepo.save(driver);
 
-        // 9. RESPONSE
+        // RESPONSE
         BookingResponseDTO responseDTO = new BookingResponseDTO(
             savedBooking.getId(),
             savedBooking.getFare(),
@@ -122,4 +124,117 @@ public class BookingService {
 
         return rs;
     }
+    
+    @Transactional
+    public ResponseStructure<String> completeRide(int bookingId) {
+        
+        // 1. Fetch Booking
+        Bookings booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found with ID: " + bookingId));
+
+        // 2. Validate State
+        if (booking.getStatus() == BookingStatus.COMPLETED) {
+            throw new RuntimeException("Ride is already completed.");
+        }
+
+        // 3. Update Booking Status
+        booking.setStatus(BookingStatus.COMPLETED);
+        
+        
+        // 4. Update Payment Status (Simulating payment success upon completion)
+        Payment payment = paymentRepo.findByBooking(booking);
+        if(payment != null) {
+            payment.setPaymentStatus(PaymentStatus.SUCCESS);
+            paymentRepo.save(payment);
+        }
+
+        // 5. Free up Driver and Vehicle
+        Driver driver = booking.getDriver();
+        Vechile vehicle = booking.getDriver().getV();
+
+        if (driver != null) {
+            driver.setStatus("Available");
+            // Update driver location to destination (Optional but realistic)
+            // driver.setLatitude(...); 
+            driverRepo.save(driver);
+        }
+
+        if (vehicle != null) {
+            vehicle.setAvailablestatus("Available");
+            // vehicle.setCurrentcity(booking.getDestinationLocation()); 
+            // Optional: update location
+            
+            vehicleRepo.save(vehicle);
+        }
+
+        bookingRepo.save(booking);
+
+        ResponseStructure<String> rs = new ResponseStructure<>();
+        rs.setStatusCode(HttpStatus.OK.value());
+        rs.setMessage("Ride completed successfully. Driver is now available.");
+        rs.setData("Booking ID: " + bookingId + " is CLOSED.");
+
+        return rs;
+    }
+
+    
+    public ResponseStructure<List<BookingResponseDTO>> getBookingHistoryByCustomer(long mobileNo) {
+        
+        // Check if customer exists
+        Customer cust = customerRepo.findByMobileno(mobileNo);
+        if (cust == null) throw new RuntimeException("Customer not found");
+
+        List<Bookings> history = bookingRepo.findByCust_Mobileno(mobileNo);
+        
+       
+        List<BookingResponseDTO> historyDTOs = new ArrayList<>();
+        
+        for (Bookings b : history) {
+        	
+            PaymentStatus pStatus = b.getPayment().getPaymentStatus(); 
+            
+            historyDTOs.add(new BookingResponseDTO(
+                b.getId(), b.getFare(), b.getDistanceTravelled(), 
+                b.getEstimationTravelTime(), b.getStatus(), 
+                pStatus, 
+                b.getDriver().getName(), 
+                b.getDriver().getV().getModel(), 
+                b.getBookingDate()
+            ));
+        }
+
+        ResponseStructure<List<BookingResponseDTO>> rs = new ResponseStructure<>();
+        rs.setStatusCode(HttpStatus.OK.value());
+        rs.setMessage("Booking History Fetched");
+        rs.setData(historyDTOs);
+        return rs;
+    }
+
+
+    public ResponseStructure<List<BookingResponseDTO>> getBookingHistoryByDriver(long mobileNo) {
+        
+        Driver driver = driverRepo.findBymobno(mobileNo);
+        if (driver == null) throw new RuntimeException("Driver not found");
+
+        List<Bookings> history = bookingRepo.findByDriver_Mobno(mobileNo);
+        
+        List<BookingResponseDTO> historyDTOs = new ArrayList<>();
+        for (Bookings b : history) {
+            historyDTOs.add(new BookingResponseDTO(
+                b.getId(), b.getFare(), b.getDistanceTravelled(), 
+                b.getEstimationTravelTime(), b.getStatus(), 
+                b.getPayment().getPaymentStatus(), 
+                b.getCust().getName(), 
+                b.getDriver().getV().getModel(), 
+                b.getBookingDate()
+            ));
+        }
+
+        ResponseStructure<List<BookingResponseDTO>> rs = new ResponseStructure<>();
+        rs.setStatusCode(HttpStatus.OK.value());
+        rs.setMessage("Driver Ride History Fetched");
+        rs.setData(historyDTOs);
+        return rs;
+    }
+    
 }
